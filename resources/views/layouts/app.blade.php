@@ -12,7 +12,11 @@
 <body class="bg-gray-100 text-gray-900">
 
     <div class="min-h-screen pb-16">
-        
+        @if(session('status'))
+    <div class="bg-green-100 text-green-800 p-4 rounded mb-4">
+        {{ session('status') }}
+    </div>
+@endif
         @yield('content')
     </div>
 

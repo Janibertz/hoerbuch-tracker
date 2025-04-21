@@ -18,6 +18,7 @@ Route::post('/track/{id}/mark-played', [TrackController::class, 'markAsPlayed'])
 Route::get('/api/current-track-footer', [\App\Http\Controllers\TrackingController::class, 'currentTrack']);
 Route::get('/import-current-playlist', [ImportController::class, 'importCurrent']);
 Route::post('/playlist/{playlist}/resume', [PlaylistController::class, 'resume'])->name('playlist.resume');
+Route::delete('/playlist/{playlist}', [App\Http\Controllers\PlaylistController::class, 'destroy'])->name('playlist.destroy');
 
 
 

@@ -100,4 +100,15 @@ class PlaylistController extends Controller
 
         return back()->with('status', '🎧 Wiedergabe gestartet!');
     }
+
+    public function destroy(Playlist $playlist)
+{
+    // Optional: zugehörige Tracks löschen
+    $playlist->tracks()->delete();
+
+    // Playlist selbst löschen
+    $playlist->delete();
+
+    return redirect('/')->with('status', '🗑 Playlist wurde gelöscht.');
+}
 }
