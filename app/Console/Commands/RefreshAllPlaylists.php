@@ -12,18 +12,22 @@ class RefreshAllPlaylists extends Command
     protected $description = 'Aktualisiert alle Playlists (neue Tracks werden ergänzt)';
 
     public function handle()
-    {
-        $count = 0;
+{
+    $count = 0;
 
-        $playlists = Playlist::with('user', 'spotifyToken')->get();
+    $playlists = Playlist::with(['user.spotifyToken'])->get();
 
-        foreach ($playlists as $playlist) {
-            auth()->login($playlist->user); // Kontext setzen
-
-            app(SpotifyPlaylistController::class)->refresh($playlist);
-            $count++;
+    foreach ($playlists as $playlist) {
+        if (!$playlist->user || !$playlist->user->spotifyToken) {
+            continue;
         }
 
-        $this->info("🎧 $count Playlists aktualisiert");
+        auth()->login($playlist->user); // auth-Kontext setzen
+        app(SpotifyPlaylistController::class)->refresh($playlist);
+        $count++;
     }
+
+    $this->info("🎧 $count Playlists aktualisiert");
+}
+
 }
