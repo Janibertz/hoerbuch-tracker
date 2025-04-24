@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Playlist;
+use App\Models\SpotifyToken;
+use App\Services\SpotifyTokenService;
 use App\Http\Controllers\SpotifyPlaylistController;
 
 class RefreshAllPlaylists extends Command
@@ -12,22 +14,36 @@ class RefreshAllPlaylists extends Command
     protected $description = 'Aktualisiert alle Playlists (neue Tracks werden ergänzt)';
 
     public function handle()
-{
-    $count = 0;
+    {
+        $updated = 0;
 
-    $playlists = Playlist::with(['user.spotifyToken'])->get();
+        $token = SpotifyTokenService::getValidAccessToken();
 
-    foreach ($playlists as $playlist) {
-        if (!$playlist->user || !$playlist->user->spotifyToken) {
-            continue;
+        if (!$token) {
+            $this->error('❌ Kein gültiger Spotify-Token gefunden.');
+            return;
         }
 
-        auth()->login($playlist->user); // auth-Kontext setzen
-        app(SpotifyPlaylistController::class)->refresh($playlist);
-        $count++;
+        $playlists = Playlist::all();
+
+        foreach ($playlists as $playlist) {
+            // Optional: Nur unvollständige Playlists updaten
+            // if ($playlist->tracks()->count() >= $playlist->total_tracks) continue;
+
+            try {
+                $newTracks = app(SpotifyPlaylistController::class)->refresh($playlist);
+
+                if ($newTracks > 0) {
+                    $updated++;
+                    $this->info("✅ {$playlist->title}: {$newTracks} neue Tracks");
+                } else {
+                    $this->line("ℹ️ {$playlist->title}: Keine neuen Tracks");
+                }
+            } catch (\Throwable $e) {
+                $this->error("❌ Fehler bei {$playlist->title}: " . $e->getMessage());
+            }
+        }
+
+        $this->info("🎧 $updated Playlists wurden aktualisiert.");
     }
-
-    $this->info("🎧 $count Playlists aktualisiert");
-}
-
 }

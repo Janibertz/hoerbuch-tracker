@@ -104,17 +104,16 @@ class SpotifyPlaylistController extends Controller
     ]);
 }
 
-public function refresh(\App\Models\Playlist $playlist)
+public function refresh(\App\Models\Playlist $playlist): int
 {
     $token = \App\Services\SpotifyTokenService::getValidAccessToken($playlist->user);
 
     if (!$token) {
-        return back()->with('error', 'Kein gültiger Spotify-Token.');
+        return 0;
     }
-
+    
     $spotifyId = $playlist->spotify_id;
     $type = $playlist->type;
-
     $limit = 100;
     $offset = 0;
     $newTracks = 0;
@@ -144,7 +143,6 @@ public function refresh(\App\Models\Playlist $playlist)
                     'status' => 'unplayed',
                     'position_ms' => 0,
                 ]);
-
                 $newTracks++;
             }
         }
@@ -152,12 +150,11 @@ public function refresh(\App\Models\Playlist $playlist)
         $offset += $limit;
     }
 
-    $playlist->update([
-        'last_refreshed_at' => now()
-    ]);
+    $playlist->update(['last_refreshed_at' => now()]);
 
-    return back()->with('status', "{$newTracks} neue Tracks wurden hinzugefügt.");
+    return $newTracks;
 }
+
 
 }
 

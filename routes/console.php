@@ -16,4 +16,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('spotify:track')->everyFiveSeconds();
 
-Schedule::command('playlist:refresh-all')->everyFiveSeconds();
+Schedule::command('playlist:refresh-all')->hourly();
