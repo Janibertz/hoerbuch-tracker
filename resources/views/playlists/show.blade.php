@@ -70,12 +70,12 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($playlist->tracks as $index => $track)
+                @foreach($tracks as $index => $track)
                     @php
                         $isNew = $track->created_at->gt(now()->subHours(1));
                     @endphp
                     <tr id="track-{{ $track->spotify_id }}"class="border-t {{ $isNew ? 'bg-green-50' : '' }} {{ $track->spotify_id === $currentlyPlayingId ? 'bg-yellow-100 font-semibold' : '' }}">
-                        <td class="px-4 py-2">{{ $index + 1 }}</td>
+                        <td class="px-4 py-2">{{ $tracks->firstItem() + $index }}</td>
                         <td class="px-4 py-2">{{ $track->title }}</td>
                         <td class="px-4 py-2 status-cell">
                             @if($isNew)
@@ -123,6 +123,10 @@
                 @endforeach
             </tbody>
         </table>
+    </div>
+
+    <div class="mt-6">
+        {{ $tracks->links('pagination::tailwind') }}
     </div>
 
     <form action="{{ route('playlist.destroy', $playlist->id) }}" class="inline-block mt-4" method="POST" onsubmit="return confirm('Bist du sicher, dass du die Playlist löschen möchtest?');">

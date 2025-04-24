@@ -54,7 +54,7 @@
                     if (data.status === 'playing') {
     const el = document.getElementById('footer-now-playing');
     el.innerHTML = `🎧 Jetzt läuft: <strong>${data.track_title}</strong> 
-        <a href="/playlist/${data.playlist_id}#track-${data.track_anchor}" class="text-blue-600 underline ml-2">
+        <a href="/playlist/${data.playlist_id}?page=${data.page}#track-${data.track_anchor}" class="text-blue-600 underline ml-2">
             → zum Track
         </a>`;
 

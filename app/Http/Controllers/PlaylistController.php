@@ -35,6 +35,7 @@ class PlaylistController extends Controller
     public function show($id)
     {
         $playlist = Playlist::with('tracks')->findOrFail($id);
+        $tracks = $playlist->tracks()->orderBy('id')->paginate(20);
     
         $currentlyPlayingId = null;
     
@@ -62,12 +63,12 @@ class PlaylistController extends Controller
         }
     
         // 🔥 HIER: Nächster noch nicht vollständig gehörter Track
-        $nextTrack = $playlist->tracks
-            ->where('status', '!=', 'played')
-            ->sortBy('id')
-            ->first();
-    
-        return view('playlists.show', compact('playlist', 'currentlyPlayingId', 'nextTrack'));
+        $nextTrack = $playlist->tracks()
+        ->where('status', '!=', 'played')
+        ->orderBy('id')
+        ->first();
+
+        return view('playlists.show', compact('playlist', 'currentlyPlayingId', 'nextTrack', 'tracks'));
     }
 
     public function resume(Request $request, Playlist $playlist){

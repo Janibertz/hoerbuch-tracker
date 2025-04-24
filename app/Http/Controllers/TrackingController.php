@@ -103,62 +103,71 @@ class TrackingController extends Controller
     }
 
     public function currentTrack()
-{
-    $token = SpotifyTokenService::getValidAccessToken();
-    $lastTrackId = $tokenData->last_track_id ?? null;
-
-    $response = Http::withToken($token)->get('https://api.spotify.com/v1/me/player/currently-playing');
-
-    if (!$response->ok() || !$response->json('is_playing')) {
-        return response()->json(['status' => 'not_playing']);
-    }
-
-    $data = $response->json();
-    $trackId = $data['item']['id'] ?? null;
-    $context = $data['context']['uri'] ?? null;
-    $contextType = $data['context']['type'] ?? null;
-
-    if (!$trackId || !$context || !in_array($contextType, ['playlist', 'album'])) {
-        return response()->json(['status' => 'unsupported_context']);
-    }
-
-    $spotifyId = str_replace("spotify:{$contextType}:", '', $context);
-    $playlist = \App\Models\Playlist::where('spotify_id', $spotifyId)->where('type', $contextType)->first();
-
-    $justImported = false;
-
-    if (!$playlist) {
-        $result = app(\App\Http\Controllers\ImportController::class)->importCurrent();
+    {
+        $token = SpotifyTokenService::getValidAccessToken();
     
-        // danach neu laden
-        $playlist = Playlist::where('spotify_id', $spotifyId)
-                            ->where('type', $contextType)
-                            ->first();
+        $response = Http::withToken($token)->get('https://api.spotify.com/v1/me/player/currently-playing');
     
-        if (!$playlist) {
-            return response()->json(['status' => 'playlist_import_failed']);
+        if (!$response->ok() || !$response->json('is_playing')) {
+            return response()->json(['status' => 'not_playing']);
         }
     
-        $justImported = true;
+        $data = $response->json();
+        $trackId = $data['item']['id'] ?? null;
+        $context = $data['context']['uri'] ?? null;
+        $contextType = $data['context']['type'] ?? null;
+    
+        if (!$trackId || !$context || !in_array($contextType, ['playlist', 'album'])) {
+            return response()->json(['status' => 'unsupported_context']);
+        }
+    
+        $spotifyId = str_replace("spotify:{$contextType}:", '', $context);
+        $playlist = \App\Models\Playlist::where('spotify_id', $spotifyId)->where('type', $contextType)->first();
+    
+        $justImported = false;
+    
+        if (!$playlist) {
+            $result = app(\App\Http\Controllers\ImportController::class)->importCurrent();
+    
+            // danach neu laden
+            $playlist = Playlist::where('spotify_id', $spotifyId)
+                                ->where('type', $contextType)
+                                ->first();
+    
+            if (!$playlist) {
+                return response()->json(['status' => 'playlist_import_failed']);
+            }
+    
+            $justImported = true;
+        }
+    
+        $track = \App\Models\Track::where('playlist_id', $playlist->id)
+            ->where('spotify_id', $trackId)
+            ->first();
+    
+        if (!$track) {
+            return response()->json(['status' => 'track_not_found']);
+        }
+    
+        // 🔢 Seite berechnen (20 Items pro Seite)
+        $trackIds = \App\Models\Track::where('playlist_id', $playlist->id)
+            ->orderBy('id')
+            ->pluck('spotify_id');
+    
+        $position = $trackIds->search($track->spotify_id);
+        $page = floor($position / 20) + 1;
+    
+        return response()->json([
+            'status' => 'playing',
+            'track_title' => $track->title,
+            'playlist_id' => $playlist->id,
+            'track_anchor' => $track->spotify_id,
+            'just_imported' => $justImported,
+            'playlist_title' => $playlist->title,
+            'page' => $page,
+        ]);
     }
-
-    $track = \App\Models\Track::where('playlist_id', $playlist->id)
-        ->where('spotify_id', $trackId)
-        ->first();
-
-    if (!$track) {
-        return response()->json(['status' => 'track_not_found']);
-    }
-
-    return response()->json([
-        'status' => 'playing',
-        'track_title' => $track->title,
-        'playlist_id' => $playlist->id,
-        'track_anchor' => $track->spotify_id,
-        'just_imported' => $justImported,
-        'playlist_title' => $playlist->title,
-    ]);
-}
+    
 
 }
 
