@@ -124,16 +124,18 @@
             </tbody>
         </table>
     </div>
+
+    <form action="{{ route('playlist.destroy', $playlist->id) }}" class="inline-block mt-4" method="POST" onsubmit="return confirm('Bist du sicher, dass du die Playlist löschen möchtest?');">
+        @csrf
+        @method('DELETE')
+        <button type="submit"
+            class="bg-red-600 text-white px-4 py-2 rounded shadow hover:bg-red-700">
+            🗑 Playlist löschen
+        </button>
+    </form>
 </div>
 
-<form action="{{ route('playlist.destroy', $playlist->id) }}" method="POST" onsubmit="return confirm('Bist du sicher, dass du die Playlist löschen möchtest?');">
-    @csrf
-    @method('DELETE')
-    <button type="submit"
-        class="bg-red-600 text-white px-4 py-2 rounded shadow hover:bg-red-700">
-        🗑 Playlist löschen
-    </button>
-</form>
+
 
 <script>
     console.log("🎬 Tracking-Skript aktiv");
