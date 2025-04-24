@@ -19,7 +19,7 @@ Route::get('/api/current-track-footer', [\App\Http\Controllers\TrackingControlle
 Route::get('/import-current-playlist', [ImportController::class, 'importCurrent']);
 Route::post('/playlist/{playlist}/resume', [PlaylistController::class, 'resume'])->name('playlist.resume');
 Route::delete('/playlist/{playlist}', [App\Http\Controllers\PlaylistController::class, 'destroy'])->name('playlist.destroy');
-
+Route::post('/playlist/{playlist}/refresh', [SpotifyPlaylistController::class, 'refresh'])->name('playlist.refresh');
 
 
 

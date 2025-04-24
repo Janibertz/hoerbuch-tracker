@@ -15,3 +15,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('spotify:track')->everyFiveSeconds();
+
+Schedule::command('playlist:refresh-all')->hourly();

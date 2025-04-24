@@ -15,14 +15,23 @@
         </div>
     </div>
 
-    <form action="{{ route('playlist.destroy', $playlist->id) }}" method="POST" onsubmit="return confirm('Bist du sicher, dass du die Playlist löschen möchtest?');">
+    @if($playlist->last_refreshed_at)
+    <p class="text-sm text-gray-500 mb-2">
+        🔄 Zuletzt aktualisiert: {{ $playlist->last_refreshed_at->diffForHumans() }}
+    </p>
+@endif
+
+
+
+
+    <form action="{{ route('playlist.refresh', $playlist->id) }}" method="POST" class="inline-block mb-4">
         @csrf
-        @method('DELETE')
-        <button type="submit"
-            class="bg-red-600 text-white px-4 py-2 rounded shadow hover:bg-red-700">
-            🗑 Playlist löschen
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">
+            🌀 Playlist aktualisieren
         </button>
     </form>
+
+    
 
     @if($nextTrack)
     <form action="{{ route('playlist.resume', $playlist->id) }}" method="POST">
@@ -62,11 +71,16 @@
             </thead>
             <tbody>
                 @foreach($playlist->tracks as $index => $track)
-                    <tr id="track-{{ $track->spotify_id }}"class="border-t hover:bg-gray-50 {{ $track->spotify_id === $currentlyPlayingId ? 'bg-yellow-100 font-semibold' : '' }}">
+                    @php
+                        $isNew = $track->created_at->gt(now()->subHours(1));
+                    @endphp
+                    <tr id="track-{{ $track->spotify_id }}"class="border-t {{ $isNew ? 'bg-green-50' : '' }} {{ $track->spotify_id === $currentlyPlayingId ? 'bg-yellow-100 font-semibold' : '' }}">
                         <td class="px-4 py-2">{{ $index + 1 }}</td>
                         <td class="px-4 py-2">{{ $track->title }}</td>
                         <td class="px-4 py-2 status-cell">
-                            @if($track->status === 'played')
+                            @if($isNew)
+                                🆕 <span class="text-green-600 font-semibold">Neu</span>
+                            @elseif($track->status === 'played')
                                 ✅ Gespielt
                             @elseif($track->status === 'in_progress')
                                 ⏯ Angefangen
@@ -111,6 +125,15 @@
         </table>
     </div>
 </div>
+
+<form action="{{ route('playlist.destroy', $playlist->id) }}" method="POST" onsubmit="return confirm('Bist du sicher, dass du die Playlist löschen möchtest?');">
+    @csrf
+    @method('DELETE')
+    <button type="submit"
+        class="bg-red-600 text-white px-4 py-2 rounded shadow hover:bg-red-700">
+        🗑 Playlist löschen
+    </button>
+</form>
 
 <script>
     console.log("🎬 Tracking-Skript aktiv");

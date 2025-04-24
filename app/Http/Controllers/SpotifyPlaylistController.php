@@ -10,16 +10,15 @@ use App\Services\SpotifyTokenService;
 
 class SpotifyPlaylistController extends Controller
 {
+
     public function checkAndImport()
 {
     $token = SpotifyTokenService::getValidAccessToken();
 
     if (!$token) {
-        // z. B. redirect oder error response
         return back()->with('error', 'Kein gültiger Spotify-Token.');
     }
 
-    // Hole aktuell gespielten Titel
     $response = Http::withToken($token)->get('https://api.spotify.com/v1/me/player/currently-playing');
 
     if (!$response->ok() || !$response->json('is_playing')) {
@@ -34,63 +33,130 @@ class SpotifyPlaylistController extends Controller
         return response()->json(['status' => 'not_supported_context']);
     }
 
-    // Extrahiere die Spotify-ID je nach Typ
-    if ($contextType === 'playlist') {
-        $spotifyId = str_replace('spotify:playlist:', '', $context);
-        $apiUrl = "https://api.spotify.com/v1/playlists/{$spotifyId}";
-    } else { // album
-        $spotifyId = str_replace('spotify:album:', '', $context);
-        $apiUrl = "https://api.spotify.com/v1/albums/{$spotifyId}";
-    }
+    $spotifyId = str_replace("spotify:{$contextType}:", '', $context);
+    $apiUrl = "https://api.spotify.com/v1/{$contextType}s/{$spotifyId}";
 
-    // Schon importiert?
-    if (Playlist::where('spotify_id', $spotifyId)->where('type', $contextType)->exists()) {
-        return response()->json(['status' => 'already_imported']);
-    }
+    $playlist = Playlist::firstOrCreate(
+        [
+            'spotify_id' => $spotifyId,
+            'type' => $contextType,
+            'user_id' => auth()->id() ?? 1,
+        ],
+        [
+            'title' => $meta['name'],
+            'cover_url' => $meta['images'][0]['url'] ?? null,
+            'total_tracks' => $meta['tracks']['total'] ?? 0,
+        ]
+    );
 
-    // Hole Playlist- oder Album-Daten
-    $spotifyData = Http::withToken($token)->get($apiUrl)->json();
+    // Meta-Daten der Playlist/Album holen
+    $meta = Http::withToken($token)->get($apiUrl)->json();
 
     $newPlaylist = Playlist::create([
         'spotify_id' => $spotifyId,
-        'title' => $spotifyData['name'],
-        'cover_url' => $spotifyData['images'][0]['url'] ?? null,
-        'total_tracks' => $contextType === 'playlist'
-            ? $spotifyData['tracks']['total']
-            : count($spotifyData['tracks']['items']),
+        'title' => $meta['name'],
+        'cover_url' => $meta['images'][0]['url'] ?? null,
+        'total_tracks' => $meta['tracks']['total'] ?? count($meta['tracks']['items'] ?? []),
         'type' => $contextType,
+        'user_id' => auth()->id() ?? 1, // für Cronjobs
     ]);
 
-    // Tracks importieren
-    $tracks = $spotifyData['tracks']['items'];
-
-    // Bei Playlist liegt der Track direkt unter 'track'
-    if ($contextType === 'playlist') {
-        foreach ($tracks as $item) {
-            $track = $item['track'];
-            Track::create([
-                'playlist_id' => $newPlaylist->id,
-                'spotify_id' => $track['id'],
-                'title' => $track['name'],
-                'duration_ms' => $track['duration_ms'],
-            ]);
+    $offset = 0;
+    $limit = 200;
+    
+    while (true) {
+        $res = Http::withToken($token)->get("https://api.spotify.com/v1/{$contextType}s/{$spotifyId}/tracks", [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    
+        $items = $res->json('items') ?? [];
+    
+        if (count($items) === 0) break;
+    
+        foreach ($items as $item) {
+            $trackData = $contextType === 'playlist' ? ($item['track'] ?? null) : $item;
+    
+            if (!$trackData || !isset($trackData['id'])) {
+                continue;
+            }
+    
+            Track::updateOrCreate(
+                ['playlist_id' => $newPlaylist->id, 'spotify_id' => $trackData['id']],
+                [
+                    'title' => $trackData['name'],
+                    'duration_ms' => $trackData['duration_ms'] ?? 0,
+                    'status' => 'unplayed',
+                    'position_ms' => 0,
+                ]
+            );
         }
-    } else { // album
-        foreach ($tracks as $track) {
-            Track::create([
-                'playlist_id' => $newPlaylist->id,
-                'spotify_id' => $track['id'],
-                'title' => $track['name'],
-                'duration_ms' => $track['duration_ms'],
-            ]);
-        }
+    
+        $offset += $limit;
     }
+    
+    
 
     return response()->json([
         'status' => 'imported',
         'type' => $contextType,
         'playlist' => $newPlaylist,
     ]);
+}
+
+public function refresh(\App\Models\Playlist $playlist)
+{
+    $token = \App\Services\SpotifyTokenService::getValidAccessToken($playlist->user);
+
+    if (!$token) {
+        return back()->with('error', 'Kein gültiger Spotify-Token.');
+    }
+
+    $spotifyId = $playlist->spotify_id;
+    $type = $playlist->type;
+
+    $limit = 100;
+    $offset = 0;
+    $newTracks = 0;
+
+    while (true) {
+        $res = Http::withToken($token)->get("https://api.spotify.com/v1/{$type}s/{$spotifyId}/tracks", [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+
+        $items = $res->json('items') ?? [];
+
+        if (count($items) === 0) break;
+
+        foreach ($items as $item) {
+            $trackData = $type === 'playlist' ? ($item['track'] ?? null) : $item;
+
+            if (!$trackData || !isset($trackData['id'])) continue;
+
+            $exists = $playlist->tracks()->where('spotify_id', $trackData['id'])->exists();
+
+            if (!$exists) {
+                $playlist->tracks()->create([
+                    'spotify_id' => $trackData['id'],
+                    'title' => $trackData['name'],
+                    'duration_ms' => $trackData['duration_ms'] ?? 0,
+                    'status' => 'unplayed',
+                    'position_ms' => 0,
+                ]);
+
+                $newTracks++;
+            }
+        }
+
+        $offset += $limit;
+    }
+
+    $playlist->update([
+        'last_refreshed_at' => now()
+    ]);
+
+    return back()->with('status', "{$newTracks} neue Tracks wurden hinzugefügt.");
 }
 
 }
