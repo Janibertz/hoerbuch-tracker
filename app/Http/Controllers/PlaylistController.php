@@ -13,8 +13,8 @@ class PlaylistController extends Controller
 {
     public function index()
     {
-        $playlists = Playlist::with(['tracks'])->get();
-
+        $playlists = Playlist::with('tracks')->get();
+    
         foreach ($playlists as $playlist) {
             $playlist->total_tracks = $playlist->tracks->count();
             $playlist->played_tracks = $playlist->tracks->where('status', 'played')->count();
@@ -22,15 +22,27 @@ class PlaylistController extends Controller
                 ? round(($playlist->played_tracks / $playlist->total_tracks) * 100, 1)
                 : 0;
         }
-        
+    
         $lastPlayed = Track::where('status', 'in_progress')
-    ->orWhere('status', 'played')
-    ->orderBy('updated_at', 'desc')
-    ->first();
-
-    return view('playlists.index', compact('playlists', 'lastPlayed'));
-
+            ->orWhere('status', 'played')
+            ->orderBy('updated_at', 'desc')
+            ->first();
+    
+        // Seite für den zuletzt gespielten Track berechnen
+        $page = null;
+    
+        if ($lastPlayed) {
+            $trackIds = Track::where('playlist_id', $lastPlayed->playlist_id)
+                ->orderBy('id')
+                ->pluck('spotify_id');
+    
+            $position = $trackIds->search($lastPlayed->spotify_id);
+            $page = floor($position / 20) + 1;
+        }
+    
+        return view('playlists.index', compact('playlists', 'lastPlayed', 'page'));
     }
+    
 
     public function show($id)
     {

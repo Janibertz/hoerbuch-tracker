@@ -14,10 +14,10 @@
         <p class="text-sm text-gray-600">
             (am {{ $lastPlayed->updated_at->format('d.m.Y \u\m H:i') }})
         </p>
-        <a href="{{ url('/playlist/'.$lastPlayed->playlist_id.'#track-'.$lastPlayed->spotify_id) }}"
-           class="inline-block mt-2 text-sm text-blue-600 hover:underline">
-            👉 Weiterhören
-        </a>
+        <a href="{{ url('/playlist/'.$lastPlayed->playlist_id.'?page='.$page.'#track-'.$lastPlayed->spotify_id) }}"
+            class="inline-block mt-2 text-sm text-blue-600 hover:underline">
+             👉 Weiterhören
+         </a>
     </div>
 @endif
 
