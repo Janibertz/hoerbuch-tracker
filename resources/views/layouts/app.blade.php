@@ -1,28 +1,39 @@
 <!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Hörbuch Tracker')</title>
-
-    {{-- Tailwind & Flowbite via CDN --}}
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
-</head>
+<html lang="de" class="">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>@yield('title', 'Hörbuch Tracker')</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        {{-- ✅ Tailwind Darkmode aktivieren --}}
+        <script>
+            tailwind.config = {
+                darkMode: 'class'
+            };
+        </script>
+     
+    
+        {{-- Optional: Flowbite UI --}}
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.css" rel="stylesheet" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+    </head>
+    
 <body class="bg-gray-100 text-gray-900 min-h-screen flex flex-col">
 
-    {{-- ✅ Navbar --}}
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="max-w-screen-lg mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="/" class="text-lg font-bold text-gray-800">📚 Hörbuch-Tracker</a>
-            <div class="space-x-4 text-sm">
-                <a href="/" class="text-gray-600 hover:text-blue-600">Start</a>
-                <a href="/playlists" class="text-gray-600 hover:text-blue-600">Playlists</a>
-            </div>
-        </div>
-    </nav>
+{{-- Kein Menü nötig – nur Logo --}}
+<nav class="bg-white shadow-md sticky top-0 z-50 dark:bg-gray-900 dark:text-white">
+    <div class="max-w-screen-lg mx-auto px-4 py-3 flex justify-between items-center">
+        <a href="/" class="text-lg font-bold">📚 Hörbuch-Tracker</a>
+
+        {{-- Darkmode Toggle --}}
+        <button onclick="toggleDarkMode()"
+        class="text-sm px-3 py-1 bg-gray-200 dark:bg-gray-800 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-700 transition">
+    🌓 Modus wechseln
+</button>
+
+    </div>
+</nav>
 
     {{-- ✅ Hauptbereich --}}
     <main class="flex-grow max-w-screen-lg mx-auto px-4 py-6 w-full">
@@ -48,6 +59,25 @@
     @stack('scripts')
 
     <script>
+    // Beim Laden Darkmode prüfen
+    if (localStorage.getItem('theme') === 'dark' ||
+        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+
+    // Umschalter
+    function toggleDarkMode() {
+        const html = document.documentElement;
+        if (html.classList.contains('dark')) {
+            html.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        }
+    }
         function updateFooterTrack() {
             fetch('/api/current-track-footer')
                 .then(res => res.json())

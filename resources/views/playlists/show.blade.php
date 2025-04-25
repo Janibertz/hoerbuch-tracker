@@ -5,14 +5,14 @@
 @section('content')
 <div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
-    <a href="/" class="text-sm text-blue-600 hover:underline block">← Zurück zur Übersicht</a>
+    <a href="/" class="text-sm text-blue-600 hover:underline block dark:text-blue-400">← Zurück zur Übersicht</a>
 
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <img src="{{ $playlist->cover_url }}" alt="{{ $playlist->title }}" class="w-28 h-28 rounded shadow object-cover">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ $playlist->title }}</h1>
-            <p class="text-sm text-gray-500 mt-1">{{ $playlist->tracks->count() }} Kapitel</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{{ $playlist->title }}</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $playlist->tracks->count() }} Kapitel</p>
             @if($playlist->last_refreshed_at)
                 <p class="text-sm text-gray-400 mt-1">
                     🔄 Zuletzt aktualisiert: {{ $playlist->last_refreshed_at->diffForHumans() }}
@@ -38,27 +38,27 @@
                 </button>
             </form>
         @else
-            <div class="text-sm italic text-gray-500">Alle Titel gehört 🎉</div>
+            <div class="text-sm italic text-gray-500 dark:text-gray-400">Alle Titel gehört 🎉</div>
         @endif
     </div>
 
     {{-- Feedback --}}
     @if(session('error'))
-        <div class="bg-red-100 border border-red-400 text-red-700 p-4 rounded">
+        <div class="bg-red-100 border border-red-400 text-red-700 p-4 rounded dark:bg-red-900 dark:text-red-200">
             {{ session('error') }}
         </div>
     @endif
 
     @if(session('status'))
-        <div class="bg-green-100 border border-green-400 text-green-700 p-4 rounded">
+        <div class="bg-green-100 border border-green-400 text-green-700 p-4 rounded dark:bg-green-900 dark:text-green-200">
             {{ session('status') }}
         </div>
     @endif
 
     {{-- Tabelle --}}
-    <div class="overflow-x-auto bg-white rounded-lg shadow text-sm">
+    <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow text-sm">
         <table class="min-w-full text-left">
-            <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
+            <thead class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase text-xs">
                 <tr>
                     <th class="px-4 py-3">#</th>
                     <th class="px-4 py-3">Titel</th>
@@ -75,21 +75,21 @@
                         $highlight = $track->spotify_id === $currentlyPlayingId;
                     @endphp
                     <tr id="track-{{ $track->spotify_id }}"
-                        class="border-t {{ $highlight ? 'bg-yellow-50 font-semibold' : ($isNew ? 'bg-green-50' : '') }} hover:bg-gray-50 transition">
-                        <td class="px-4 py-2 font-mono text-gray-500">{{ $tracks->firstItem() + $index }}</td>
-                        <td class="px-4 py-2">{{ $track->title }}</td>
+                        class="border-t border-gray-200 dark:border-gray-700 {{ $highlight ? 'bg-yellow-50 dark:bg-yellow-900/20 font-semibold' : ($isNew ? 'bg-green-50 dark:bg-green-900/10' : '') }} hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                        <td class="px-4 py-2 font-mono text-gray-600 dark:text-gray-300">{{ $tracks->firstItem() + $index }}</td>
+                        <td class="px-4 py-2 text-gray-800 dark:text-gray-100">{{ $track->title }}</td>
                         <td class="px-4 py-2 status-cell">
                             @if($isNew)
-                                🆕 <span class="text-green-600 font-semibold">Neu</span>
+                                🆕 <span class="text-green-600 font-semibold dark:text-green-300">Neu</span>
                             @elseif($track->status === 'played')
-                                ✅ Gespielt
+                                ✅ <span class="text-green-700 dark:text-green-300">Gespielt</span>
                             @elseif($track->status === 'in_progress')
-                                ⏯ Angefangen
+                                ⏯ <span class="text-yellow-600 dark:text-yellow-300">Angefangen</span>
                             @else
-                                ◻️ Ungespielt
+                                ◻️ <span class="text-gray-600 dark:text-gray-300">Ungespielt</span>
                             @endif
                         </td>
-                        <td class="px-4 py-2 position-cell text-gray-600">
+                        <td class="px-4 py-2 position-cell text-gray-600 dark:text-gray-400">
                             @if($track->position_ms)
                                 {{ gmdate("i:s", $track->position_ms / 1000) }} / {{ gmdate("i:s", $track->duration_ms / 1000) }}
                             @else
@@ -100,7 +100,7 @@
                             @if($track->status === 'in_progress')
                                 <form action="{{ route('track.resume', $track->id) }}" method="POST">
                                     @csrf
-                                    <button class="text-green-600 hover:underline text-sm">▶️ Weiterhören</button>
+                                    <button class="text-green-600 hover:underline dark:text-green-300 text-sm">▶️ Weiterhören</button>
                                 </form>
                             @endif
                         </td>
@@ -108,10 +108,10 @@
                             @if($track->status !== 'played')
                                 <form action="{{ route('track.markPlayed', $track->id) }}" method="POST">
                                     @csrf
-                                    <button class="text-blue-600 hover:underline text-sm">✅ Markieren</button>
+                                    <button class="text-blue-600 hover:underline dark:text-blue-400 text-sm">✅ Markieren</button>
                                 </form>
                             @else
-                                <span class="text-green-600 text-sm">Gehört</span>
+                                <span class="text-green-600 dark:text-green-400 text-sm">Gehört</span>
                             @endif
                         </td>
                     </tr>
