@@ -110,7 +110,7 @@ public function refresh(\App\Models\Playlist $playlist): int
 
     if (!$token) {
         echo"Hallo";die;
-        return 0;
+        return 1;
     }
     
     $spotifyId = $playlist->spotify_id;
