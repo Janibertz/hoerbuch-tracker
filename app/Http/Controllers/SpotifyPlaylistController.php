@@ -106,7 +106,7 @@ class SpotifyPlaylistController extends Controller
 
 public function refresh(\App\Models\Playlist $playlist): int
 {
-    $token = \App\Services\SpotifyTokenService::getValidAccessToken();
+    $token = SpotifyTokenService::getValidAccessToken();
 
     if (!$token) {
         return 0;
