@@ -109,8 +109,7 @@ public function refresh(\App\Models\Playlist $playlist): int
     $token = SpotifyTokenService::getValidAccessToken();
 
     if (!$token) {
-        echo"Hallo";die;
-        return 1;
+        return 0;
     }
     
     $spotifyId = $playlist->spotify_id;
